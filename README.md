@@ -13,10 +13,43 @@
 
 ## 运行与验证
 
+安装 Phase 1 轻量运行依赖：
+
+```bash
+python -m pip install flask==3.0.0 flask-cors==4.0.0 flask-restful==0.3.10
+```
+
 验证应用工厂是否可创建：
 
 ```bash
 python -c "from app import create_app; app = create_app(); print('App created successfully')"
+```
+
+用 Flask test client 验证路由骨架：
+
+```bash
+python - <<'PY'
+from app import create_app
+
+app = create_app()
+client = app.test_client()
+checks = [
+    ("GET", "/api/chat/"),
+    ("POST", "/api/chat/session"),
+    ("POST", "/api/voice/input"),
+    ("POST", "/api/voice/output"),
+    ("GET", "/api/lesson/"),
+    ("POST", "/api/lesson/"),
+    ("GET", "/api/lesson/7"),
+    ("POST", "/api/question/"),
+    ("GET", "/api/question/8"),
+    ("POST", "/api/project/"),
+]
+for method, path in checks:
+    response = getattr(client, method.lower())(path)
+    assert response.status_code == 200, (method, path, response.status_code, response.get_json())
+print("API smoke OK")
+PY
 ```
 
 启动服务：
@@ -37,8 +70,8 @@ python run.py
 - 验证命令：
   - `python -B -c "import ast, pathlib; files=['app/api/__init__.py','app/api/chat.py','app/api/voice.py','app/api/lesson.py','app/api/question.py','app/api/project.py','app/core/__init__.py','app/models/__init__.py','app/services/__init__.py','app/utils/__init__.py']; [ast.parse(pathlib.Path(f).read_text()) for f in files]; print('Syntax OK')"`
   - 结果：`Syntax OK`
-  - `python -B -c "import flask, flask_restful; print('Flask OK')"`
-  - 结果：失败，`ModuleNotFoundError: No module named 'flask'`
-  - `python -B -c "import importlib.util; print('flask', importlib.util.find_spec('flask')); print('flask_restful', importlib.util.find_spec('flask_restful'))"`
-  - 结果：`flask None`，`flask_restful None`
-- 当前运行仍需要 `Flask` 和 `flask-restful` 依赖可用；目前环境中这两个包都不可用，所以路由模块导入和服务启动都会失败。
+  - `python -c "from app import create_app; app = create_app(); print('App created successfully')"`
+  - 结果：`App created successfully`
+  - Flask test client 路由 smoke test
+  - 结果：`API smoke OK`
+- 当前只安装了 Phase 1 路由验证所需的轻量 Flask 依赖；`vLLM`、`PaddleOCR`、`Chroma` 等模型与数据依赖留到后续阶段按任务安装。
