@@ -74,4 +74,24 @@ python run.py
   - 结果：`App created successfully`
   - Flask test client 路由 smoke test
   - 结果：`API smoke OK`
-- 当前只安装了 Phase 1 路由验证所需的轻量 Flask 依赖；`vLLM`、`PaddleOCR`、`Chroma` 等模型与数据依赖留到后续阶段按任务安装。
+- 当前只安装了 Phase 1 路由验证所需的轻量 Flask 依赖，以及模型服务单元测试所需的 `pytest`；`vLLM`、`PaddleOCR`、`Chroma` 等模型与数据依赖留到后续阶段按任务安装。
+
+## Phase 2 模型服务
+
+本阶段补齐了本地 vLLM 推理服务相关的最小工具层，仍然保持“按需调用，不自动启动”的原则：
+
+- `model_service/inference.py`：提供 `VLLMClient`，默认从 `VLLM_HOST` 和 `VLLM_PORT` 读取服务地址，或回退到 `localhost:8000`
+- `model_service/vllm_server.py`：提供 `build_vllm_command(...)` 和 `start_vllm_server(...)`，用于显式生成并启动 vLLM 命令
+- `model_service/quantize.py`：提供 `default_quant_config()` 和 `quantize_model(...)`，AWQ 相关重依赖只在函数内部导入
+
+验证命令：
+
+```bash
+pytest -q tests/test_model_service.py
+```
+
+说明：
+
+- 这些模块不会在导入时自动启动 vLLM
+- 这些模块不会自动下载模型
+- 量化和服务启动都需要在调用对应函数或 CLI 时才会发生

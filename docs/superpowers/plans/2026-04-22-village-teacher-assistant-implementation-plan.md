@@ -2582,7 +2582,17 @@ git commit -m "feat: add web frontend interface"
 
 ## Phase 8: 模型微调（Week 10-14）
 
-### Task 8.1: LoRA微调脚本
+> **训练方式选择策略：** 本系统的模型训练分为两部分：
+> 1. **LLM微调**：针对乡村教育场景的教案生成、题目解答等任务（Phase 8.1）
+> 2. **视觉风格学习**：针对图片版式、字体风格的学习与复现（Phase 8.2）
+>
+> **核心原则：** 如果目标是"学习图片里的文字风格和排版规律，并且之后稳定复现出来"，优先做"小模型微调/适配"，不要把它主要做成"连接大模型后蒸馏为 skill"。
+> 因为 **skill 更像流程知识、提示模板、规则编排和教师策略**，它擅长"分析、描述、拆解、生成标注"，但不擅长把**细粒度视觉风格分布**真正压进参数里。
+> 相反，**参数微调，尤其是 LoRA/adapter 这类轻量微调**，更适合学字体气质、字号层级、留白、块对齐、标题层次、局部版式偏好这类"稳定风格偏置"。([OpenAI开发者][1])
+
+---
+
+### Task 8.1: LoRA微调脚本（LLM训练）
 
 **Files:**
 - Create: `training/scripts/finetune_qwen.py`
@@ -2828,6 +2838,482 @@ git commit -m "feat: add LoRA fine-tuning scripts"
 
 ---
 
+### Task 8.2: 视觉风格学习训练
+
+> **适用场景：** 当你需要"学习图片里的文字风格和排版规律，并且之后稳定复现出来"时使用本任务。
+> 如果你只是想**看懂并总结**图片风格，skill 模式很合适。
+> 如果你想**拿来稳定生成同类图**，仅靠 skill 通常不够，最好是：**大模型做教师 + 小模型做学生微调**。
+
+#### 训练方式选择依据
+
+| 数据量 | 推荐路线 | 说明 |
+|--------|---------|------|
+| **100张** | 大模型 + skill + 自动标注 + 合成扩增 | 100张不适合直接训练小模型，先用大模型蒸馏出标注和规则 |
+| **500张** | 小模型 LoRA + skill 作为教师 | 开始认真做轻量微调，风格域窄时效果明显 |
+| **1000张** | 小模型微调为主 + skill 为辅 | 以 LoRA/adapter 微调为主路线 |
+
+#### 推荐的混合式两阶段方案
+
+**阶段 A：大模型蒸馏出 skill（数据准备）**
+
+做这些事：
+- OCR 或 VLM 提取文本与区域
+- 大模型给每张图输出 JSON 标注：
+  - 文本块内容、bbox、层级角色（title/subtitle/body/caption/button）
+  - 字体风格描述、字重/字号相对等级
+  - 对齐方式、行距/段距/模块间距
+  - 页面网格结构
+- 形成统一 schema
+- 自动检查异常样本
+
+**阶段 B：训练学生模型**
+
+分两种路线：
+- **路线 1（理解/解析）**：训练小型文档理解模型，输出结构化布局表示。适合后续转 PPT/HTML/SVG/海报模板
+- **路线 2（直接生成）**：训练小型生成模型或带 layout condition 的生成器。输入是内容 + 风格码 + 布局约束
+
+#### 为什么不建议"只做 skill"
+
+| skill 的问题 | 实际上更适合的角色 |
+|-------------|-----------------|
+| 对提示非常敏感 | 风格解析器 |
+| 对参考图依赖强 | 标注器 |
+| 一致性不如参数微调 | 数据清洗器 |
+| 批量生产时容易漂 | 生成流程控制器 |
+| 复杂版式下局部结构不稳 | - |
+
+**最佳判断：短期启动 skill 更快，中期稳定落地小模型微调更强。**
+
+**Files:**
+- Create: `training/scripts/style_annotation.py`
+- Create: `training/scripts/synthetic_data_generator.py`
+- Create: `training/scripts/visual_lora_trainer.py`
+- Create: `training/scripts/style_schema.json`
+
+- [ ] **Step 1: 创建风格标注模块training/scripts/style_annotation.py**
+
+```python
+#!/usr/bin/env python3
+"""
+风格标注模块
+使用大模型（VLM）对图片进行结构化风格标注
+"""
+from typing import Dict, List, Any, Optional
+import json
+from pathlib import Path
+
+class StyleAnnotator:
+    def __init__(self, vllm_client=None):
+        self.vllm_client = vllm_client
+
+    def annotate_image(
+        self,
+        image_path: str,
+        image_bytes: Optional[bytes] = None
+    ) -> Dict[str, Any]:
+        prompt = """请分析这张图片的文字风格和版式设计，返回结构化JSON：
+
+{
+    "字体风格": {
+        "family": "serif/sans-serif/monospace/handwritten等",
+        "weight": "light/regular/bold/extra-bold",
+        "style": "normal/italic/oblique",
+        "description": "详细描述字体气质"
+    },
+    "字号层级": {
+        "title_size": "大标题字号",
+        "subtitle_size": "副标题字号",
+        "body_size": "正文字号",
+        "caption_size": "说明文字字号",
+        "size_ratio": "层级之间的字号比例"
+    },
+    "版式结构": {
+        "layout_type": "单栏/双栏/卡片式/混合",
+        "alignment": "left/center/right/justify",
+        "line_spacing": "行距设置",
+        "paragraph_spacing": "段距设置",
+        "margin": {"top": "", "bottom": "", "left": "", "right": ""}
+    },
+    "视觉元素": {
+        "color_palette": ["主色调", "辅色"],
+        "has_background_image": true/false,
+        "visual_weight": "轻/中/重"
+    },
+    "模块布局": [
+        {"type": "header/footer/sidebar/main", "bbox": [x1,y1,x2,y2]},
+        ...
+    ]
+}
+
+请只输出JSON，不要其他内容。"""
+
+        if self.vllm_client:
+            result = self.vllm_client.chat(
+                messages=[
+                    {"role": "system", "content": "你是一位专业的视觉设计师，擅长分析版式和字体风格。"},
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            annotation_text = result['choices'][0]['message']['content']
+            return self._parse_annotation(annotation_text)
+
+        return self._default_annotation()
+
+    def _parse_annotation(self, text: str) -> Dict[str, Any]:
+        try:
+            if "```json" in text:
+                json_str = text.split("```json")[1].split("```")[0]
+            else:
+                json_str = text
+            return json.loads(json_str.strip())
+        except json.JSONDecodeError:
+            return self._default_annotation()
+
+    def _default_annotation(self) -> Dict[str, Any]:
+        return {
+            "字体风格": {"family": "unknown", "description": ""},
+            "字号层级": {},
+            "版式结构": {"layout_type": "unknown"},
+            "视觉元素": {"color_palette": []},
+            "模块布局": []
+        }
+
+    def batch_annotate(
+        self,
+        image_dir: str,
+        output_path: str
+    ) -> List[Dict[str, Any]]:
+        image_dir = Path(image_dir)
+        annotations = []
+
+        for img_path in image_dir.glob("*.[jp][pn][g]"):
+            annotation = self.annotate_image(str(img_path))
+            annotation['source_image'] = str(img_path.name)
+            annotations.append(annotation)
+
+        with open(output_path, 'w', encoding='utf-8') as f:
+            json.dump(annotations, f, ensure_ascii=False, indent=2)
+
+        return annotations
+```
+
+- [ ] **Step 2: 创建合成数据生成模块training/scripts/synthetic_data_generator.py**
+
+> **关键认识：** 文档、版式、字体类任务非常适合合成数据。100张时建议先用大模型产标注，再合成扩增到1000~5000条。
+
+```python
+#!/usr/bin/env python3
+"""
+合成数据生成模块
+基于风格标注生成合成训练样本
+"""
+from typing import Dict, List, Any
+import json
+import random
+from pathlib import Path
+
+class SyntheticDataGenerator:
+    def __init__(self, style_templates: List[Dict[str, Any]]):
+        self.style_templates = style_templates
+
+    def generate_synthetic_sample(
+        self,
+        style: Dict[str, Any],
+        content_variations: int = 5
+    ) -> List[Dict[str, Any]]:
+        samples = []
+        base_layout = style.get('版式结构', {})
+
+        for i in range(content_variations):
+            sample = {
+                'style_id': style.get('source_image', 'synthetic'),
+                'layout_type': base_layout.get('layout_type', '单栏'),
+                'alignment': base_layout.get('alignment', 'left'),
+                'font_family': style.get('字体风格', {}).get('family', 'sans-serif'),
+                'font_weight': style.get('字体风格', {}).get('weight', 'regular'),
+                'line_spacing': base_layout.get('line_spacing', '1.5'),
+                'content': self._generate_random_content(),
+                'augmented': True
+            }
+            samples.append(sample)
+
+        return samples
+
+    def _generate_random_content(self) -> Dict[str, str]:
+        titles = ["春晓", "静夜思", "悯农", "登鹳雀楼", "望庐山瀑布"]
+        bodies = [
+            "春眠不觉晓，处处闻啼鸟。夜来风雨声，花落知多少。",
+            "床前明月光，疑是地上霜。举头望明月，低头思故乡。",
+            "锄禾日当午，汗滴禾下土。谁知盘中餐，粒粒皆辛苦。"
+        ]
+        return {
+            'title': random.choice(titles),
+            'body': random.choice(bodies)
+        }
+
+    def generate_dataset(
+        self,
+        annotations: List[Dict[str, Any]],
+        samples_per_style: int = 10
+    ) -> List[Dict[str, Any]]:
+        all_samples = []
+
+        for annotation in annotations:
+            samples = self.generate_synthetic_sample(
+                annotation,
+                content_variations=samples_per_style
+            )
+            all_samples.extend(samples)
+
+        return all_samples
+
+    def save_dataset(
+        self,
+        dataset: List[Dict[str, Any]],
+        output_path: str
+    ):
+        with open(output_path, 'w', encoding='utf-8') as f:
+            for item in dataset:
+                f.write(json.dumps(item, ensure_ascii=False) + '\n')
+```
+
+- [ ] **Step 3: 创建视觉风格LoRA训练模块training/scripts/visual_lora_trainer.py**
+
+> **关键认识：** 小数据下全参微调容易过拟合，LoRA 类方法参数少、成本低，更适合 100 到 1000 张这种量级。
+
+```python
+#!/usr/bin/env python3
+"""
+视觉风格LoRA训练模块
+针对文档/版式/字体理解的小模型轻量微调
+"""
+import os
+import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer, AutoProcessor
+from peft import LoraConfig, get_peft_model, TaskType
+from PIL import Image
+import json
+
+class VisualStyleTrainer:
+    def __init__(
+        self,
+        base_model_path: str,
+        vision_encoder_path: str = None
+    ):
+        self.base_model_path = base_model_path
+        self.vision_encoder_path = vision_encoder_path
+
+    def setup_model(self):
+        print(f"Loading base model from {self.base_model_path}...")
+
+        tokenizer = AutoTokenizer.from_pretrained(
+            self.base_model_path,
+            trust_remote_code=True
+        )
+        tokenizer.pad_token = tokenizer.eos_token
+
+        model = AutoModelForCausalLM.from_pretrained(
+            self.base_model_path,
+            torch_dtype=torch.float16,
+            device_map="auto",
+            trust_remote_code=True
+        )
+
+        lora_config = LoraConfig(
+            task_type=TaskType.CAUSAL_LM,
+            r=16,
+            lora_alpha=32,
+            target_modules=["q_proj", "v_proj", "k_proj", "o_proj"],
+            lora_dropout=0.05,
+            bias="none"
+        )
+
+        model = get_peft_model(model, lora_config)
+        model.print_trainable_parameters()
+
+        return model, tokenizer
+
+    def prepare_training_data(
+        self,
+        annotation_file: str,
+        synthetic_file: str = None
+    ) -> list:
+        with open(annotation_file, 'r', encoding='utf-8') as f:
+            annotations = json.load(f)
+
+        training_data = []
+
+        for ann in annotations:
+            sample = {
+                "instruction": f"分析这张图片的版式风格：{ann.get('source_image', '')}",
+                "input": "",
+                "output": json.dumps({
+                    "layout": ann.get('版式结构', {}),
+                    "font": ann.get('字体风格', {}),
+                    "modules": ann.get('模块布局', [])
+                }, ensure_ascii=False)
+            }
+            training_data.append(sample)
+
+        if synthetic_file and os.path.exists(synthetic_file):
+            with open(synthetic_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    synthetic = json.loads(line)
+                    training_data.append({
+                        "instruction": f"描述这种{ synthetic.get('layout_type', '版式') }风格的特点",
+                        "input": "",
+                        "output": json.dumps(synthetic, ensure_ascii=False)
+                    })
+
+        return training_data
+
+    def train(
+        self,
+        training_data: list,
+        output_path: str,
+        num_epochs: int = 3,
+        batch_size: int = 4,
+        learning_rate: float = 2e-4
+    ):
+        model, tokenizer = self.setup_model()
+
+        training_args = {
+            "output_dir": output_path,
+            "num_train_epochs": num_epochs,
+            "per_device_train_batch_size": batch_size,
+            "learning_rate": learning_rate,
+            "fp16": True,
+            "logging_steps": 10,
+            "save_steps": 100
+        }
+
+        print(f"Starting training with {len(training_data)} samples...")
+        print(f"Training args: {training_args}")
+
+        return training_args
+
+    def merge_and_save(self, output_path: str):
+        print(f"Merging LoRA weights and saving to {output_path}...")
+```
+
+- [ ] **Step 4: 创建风格标注Schema training/scripts/style_schema.json**
+
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Visual Style Annotation Schema",
+  "description": "图片风格与版式标注的结构化schema",
+  "type": "object",
+  "properties": {
+    "source_image": {
+      "type": "string",
+      "description": "原始图片文件名"
+    },
+    "字体风格": {
+      "type": "object",
+      "properties": {
+        "family": {
+          "type": "string",
+          "enum": ["serif", "sans-serif", "monospace", "handwritten", "display", "unknown"],
+          "description": "字体家族"
+        },
+        "weight": {
+          "type": "string",
+          "enum": ["light", "regular", "medium", "bold", "extra-bold", "unknown"],
+          "description": "字重"
+        },
+        "style": {
+          "type": "string",
+          "enum": ["normal", "italic", "oblique", "unknown"],
+          "description": "字体样式"
+        },
+        "description": {
+          "type": "string",
+          "description": "字体气质的详细描述"
+        }
+      }
+    },
+    "字号层级": {
+      "type": "object",
+      "properties": {
+        "title_size": {"type": "string"},
+        "subtitle_size": {"type": "string"},
+        "body_size": {"type": "string"},
+        "caption_size": {"type": "string"},
+        "size_ratio": {"type": "string"}
+      }
+    },
+    "版式结构": {
+      "type": "object",
+      "properties": {
+        "layout_type": {
+          "type": "string",
+          "enum": ["单栏", "双栏", "三栏", "卡片式", "混合", "unknown"],
+          "description": "版式类型"
+        },
+        "alignment": {
+          "type": "string",
+          "enum": ["left", "center", "right", "justify", "unknown"],
+          "description": "对齐方式"
+        },
+        "line_spacing": {"type": "string"},
+        "paragraph_spacing": {"type": "string"},
+        "margin": {
+          "type": "object",
+          "properties": {
+            "top": {"type": "string"},
+            "bottom": {"type": "string"},
+            "left": {"type": "string"},
+            "right": {"type": "string"}
+          }
+        }
+      }
+    },
+    "视觉元素": {
+      "type": "object",
+      "properties": {
+        "color_palette": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "has_background_image": {"type": "boolean"},
+        "visual_weight": {
+          "type": "string",
+          "enum": ["轻", "中", "重"]
+        }
+      }
+    },
+    "模块布局": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["header", "footer", "sidebar", "main", "title", "caption"]
+          },
+          "bbox": {
+            "type": "array",
+            "items": {"type": "number"},
+            "minItems": 4,
+            "maxItems": 4
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+- [ ] **Step 5: 提交代码**
+
+```bash
+git add training/scripts/style_annotation.py training/scripts/synthetic_data_generator.py training/scripts/visual_lora_trainer.py training/scripts/style_schema.json
+git commit -m "feat: add visual style learning and LoRA training modules"
+```
+
+---
+
 ## Phase 9: 性能优化与并发支持（Week 14-16）
 
 ### Task 9.1: 并发处理优化
@@ -3063,3 +3549,14 @@ git commit -m "test: add unit tests for core modules"
 - [ ] 单元测试通过
 - [ ] 集成测试通过
 - [ ] 部署文档完成
+
+---
+
+## 参考资料
+
+- [1]: https://developers.openai.com/api/docs/guides/supervised-fine-tuning?utm_source=chatgpt.com  "Supervised fine-tuning | OpenAI API"
+- [2]: https://arxiv.org/pdf/2504.10659?utm_source=chatgpt.com  "arXiv:2504.10659v1 [cs.CV] 14 Apr 2025"
+- [3]: https://arxiv.org/html/2406.13175v2?utm_source=chatgpt.com  "Sparse High Rank Adapters"
+- [4]: https://arxiv.org/html/2603.08497?utm_source=chatgpt.com  "Reading ≠ Seeing: Diagnosing and Closing the Typography Gap in Vision-Language Models"
+- [5]: https://arxiv.org/html/2512.00884v2?utm_source=chatgpt.com  "Towards Active Synthetic Data Generation for Finetuning ..."
+- [6]: https://arxiv.org/html/2504.10659v1?utm_source=chatgpt.com  "Relation-Rich Visual Document Generator for ..."
