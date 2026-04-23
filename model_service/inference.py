@@ -94,15 +94,55 @@ class NvidiaOpenAIClient:
         self.client.close()
 
 
+class SiliconFlowOpenAIClient:
+    def __init__(self):
+        self.api_key = os.getenv('SILICON_FLOW_API_KEY', 'sk-czzpwrzncqygoqmwdtojcmmsfgwzdnoqgrruarzdcrfjzzgn')
+        self.base_url = os.getenv('SILICON_FLOW_BASE_URL', 'https://api.siliconflow.cn/v1')
+        self.model = os.getenv('SILICON_FLOW_MODEL', 'deepseekv3.2')
+        self.client = httpx.Client(
+            timeout=300.0,
+            headers={
+                'Authorization': f'Bearer {self.api_key}',
+                'Content-Type': 'application/json'
+            }
+        )
+
+    def chat(
+        self,
+        messages: List[Dict[str, str]],
+        max_tokens: int = 16384,
+        temperature: float = 0.7,
+        stream: bool = False
+    ) -> Dict[str, Any]:
+        payload = {
+            "model": self.model,
+            "messages": messages,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "top_p": 0.9,
+            "stream": stream
+        }
+        response = self.client.post(f"{self.base_url}/chat/completions", json=payload)
+        response.raise_for_status()
+        return response.json()
+
+    def close(self):
+        self.client.close()
+
+
 _client = None
 
 
 def get_vllm_client() -> VLLMClient:
     global _client
     if _client is None:
-        # 检查是否使用NVIDIA API
-        if os.getenv('USE_NVIDIA_API', 'false').lower() == 'true':
+        # 检查使用哪种API服务
+        api_type = os.getenv('API_TYPE', 'local').lower()
+        
+        if api_type == 'nvidia':
             _client = NvidiaOpenAIClient()
+        elif api_type == 'silicon_flow':
+            _client = SiliconFlowOpenAIClient()
         else:
             _client = VLLMClient()
     return _client
