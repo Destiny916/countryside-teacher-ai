@@ -10,6 +10,11 @@ class TeacherAssistantApp {
     async init() {
         await this.createSession();
         this.bindEvents();
+        this.clearInput();
+    }
+
+    clearInput() {
+        document.getElementById('messageInput').value = '';
     }
 
     async createSession() {
