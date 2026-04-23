@@ -1,22 +1,23 @@
-from flask import Flask
+from flask import Flask, render_template
 from flask_cors import CORS
-
 from app.config import Config
-
+import os
+from dotenv import load_dotenv
 
 def create_app(config_class=Config):
+    # 加载环境变量
+    load_dotenv()
+    
     app = Flask(__name__)
     app.config.from_object(config_class)
+
     CORS(app, resources={r"/api/*": {"origins": "*"}})
 
-    try:
-        from app.api import register_routes
-    except ModuleNotFoundError as exc:
-        if exc.name != "app.api":
-            raise
-        register_routes = None
+    @app.route('/')
+    def index():
+        return render_template('index.html')
 
-    if register_routes is not None:
-        register_routes(app)
+    from app.api import register_routes
+    register_routes(app)
 
     return app
