@@ -68,7 +68,7 @@ class TeacherAssistantApp {
         if (role === 'assistant') {
             avatar.innerHTML = `
                 <div class="avatar-glow">
-                    <img src="/static/images/teacher-avatar.svg" alt="小慧老师" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;" />
+                    <img src="/static/images/teacher-avatar.png" alt="小慧老师" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;" />
                 </div>
             `;
         } else {
