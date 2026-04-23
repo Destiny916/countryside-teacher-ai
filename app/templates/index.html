@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>乡村老师助教系统 - 小慧老师</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div id="app" class="container">
+        <header class="header">
+            <h1>🏠 乡村老师助教系统</h1>
+            <p class="subtitle">小慧老师随时为你服务！</p>
+        </header>
+
+        <main class="main-content">
+            <div class="mode-selector">
+                <button class="mode-btn active" data-mode="chat">💬 问答模式</button>
+                <button class="mode-btn" data-mode="teaching">📚 教学模式</button>
+                <button class="mode-btn" data-mode="lesson">📝 备课模式</button>
+                <button class="mode-btn" data-mode="project">📋 项目计划</button>
+            </div>
+
+            <div class="chat-container" id="chatContainer">
+                <div class="messages" id="messages"></div>
+                <div class="input-area">
+                    <button class="voice-btn" id="voiceBtn">🎤</button>
+                    <input type="text" id="messageInput" placeholder="输入你的问题...">
+                    <button class="send-btn" id="sendBtn">发送</button>
+                </div>
+            </div>
+        </main>
+
+        <aside class="sidebar" id="sidebar" style="display: none;">
+            <div class="sidebar-content"></div>
+        </aside>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
