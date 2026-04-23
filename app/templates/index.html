@@ -7,19 +7,18 @@
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="app-container">
         <div class="background-decoration">
-            <div class="gradient-orb orb-1"></div>
-            <div class="gradient-orb orb-2"></div>
-            <div class="gradient-orb orb-3"></div>
+            <div class="grid-pattern"></div>
+            <div class="light-points"></div>
         </div>
         
         <div class="main-wrapper">
             <header class="app-header">
-                <div class="header-content">
+                <div class="header-left">
                     <div class="logo-section">
                         <div class="logo-icon">
                             <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -38,93 +37,189 @@
                             <p>小慧老师随时为你服务！</p>
                         </div>
                     </div>
-                    <div class="status-badge">
-                        <span class="status-dot"></span>
-                        <span>在线</span>
+                </div>
+                <div class="header-right">
+                    <div class="teacher-status-card">
+                        <div class="status-avatar">
+                            <div class="avatar-ring"></div>
+                            <span>🤖</span>
+                        </div>
+                        <div class="status-info">
+                            <h3>小慧老师 · AI 智能助教</h3>
+                            <p>用科技点亮乡村教育未来 ❤️</p>
+                        </div>
                     </div>
                 </div>
             </header>
 
             <div class="content-area">
-                <nav class="mode-navigation">
-                    <button class="nav-btn active" data-mode="chat">
-                        <span class="nav-icon">💬</span>
-                        <span class="nav-label">问答模式</span>
-                        <span class="nav-desc">引导启发 · 互动问答</span>
-                    </button>
-                    <button class="nav-btn" data-mode="teaching">
-                        <span class="nav-icon">📚</span>
-                        <span class="nav-label">教学模式</span>
-                        <span class="nav-desc">知识讲解 · 课堂教学</span>
-                    </button>
-                    <button class="nav-btn" data-mode="lesson">
-                        <span class="nav-icon">📝</span>
-                        <span class="nav-label">备课模式</span>
-                        <span class="nav-desc">教案设计 · 资源准备</span>
-                    </button>
-                </nav>
-
-                <main class="workspace">
-                    <div class="chat-panel" id="chatPanel">
-                        <div class="chat-header">
-                            <div class="teacher-info">
-                                <div class="teacher-avatar">
-                                    <div class="avatar-ring"></div>
-                                    <span>👩‍🏫</span>
-                                </div>
-                                <div class="teacher-details">
-                                    <h3>小慧老师</h3>
-                                    <p class="status-text">准备就绪</p>
-                                </div>
-                            </div>
-                            <div class="chat-actions">
-                                <button class="action-btn" title="清空对话">🗑️</button>
-                            </div>
+                <div class="sidebar-left">
+                    <div class="sidebar-title">
+                        <h3>AI 助教能力</h3>
+                    </div>
+                    <div class="sidebar-menu">
+                        <div class="menu-item active">
+                            <span class="menu-icon">💬</span>
+                            <span class="menu-text">智能问答</span>
+                            <span class="menu-desc">解答学生问题</span>
                         </div>
-
-                        <div class="messages-container" id="messagesContainer">
-                            <div class="messages-list" id="messagesList"></div>
+                        <div class="menu-item">
+                            <span class="menu-icon">📚</span>
+                            <span class="menu-text">知识讲解</span>
+                            <span class="menu-desc">深入浅出知识</span>
                         </div>
-
-                        <div class="input-container">
-                            <div class="input-wrapper">
-                                <button class="input-action-btn voice-btn" id="voiceBtn" title="语音输入">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-                                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                                        <line x1="12" y1="19" x2="12" y2="23"></line>
-                                        <line x1="8" y1="23" x2="16" y2="23"></line>
-                                    </svg>
-                                </button>
-                                <div class="text-input-wrapper">
-                                    <textarea id="messageInput" placeholder="输入你的问题... (Shift+Enter 换行)" rows="1"></textarea>
-                                </div>
-                                <button class="input-action-btn send-btn" id="sendBtn" title="发送">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <line x1="22" y1="2" x2="11" y2="13"></line>
-                                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                                    </svg>
-                                </button>
-                            </div>
-                            <div class="input-hints">
-                                <span>按 Enter 发送，Shift + Enter 换行</span>
-                            </div>
+                        <div class="menu-item">
+                            <span class="menu-icon">🏫</span>
+                            <span class="menu-text">课堂互动</span>
+                            <span class="menu-desc">激发学习兴趣</span>
+                        </div>
+                        <div class="menu-item">
+                            <span class="menu-icon">📝</span>
+                            <span class="menu-text">备课支持</span>
+                            <span class="menu-desc">教案资源推荐</span>
+                        </div>
+                        <div class="menu-item">
+                            <span class="menu-icon">📊</span>
+                            <span class="menu-text">学情分析</span>
+                            <span class="menu-desc">学习情况洞察</span>
+                        </div>
+                        <div class="menu-divider"></div>
+                        <div class="menu-item">
+                            <span class="menu-icon">⚡</span>
+                            <span class="menu-text">科技助力教育</span>
+                            <span class="menu-desc">智慧点亮未来</span>
                         </div>
                     </div>
+                </div>
 
-                    <aside class="sidebar-panel" id="sidebarPanel">
-                        <div class="sidebar-header">
-                            <h3 id="sidebarTitle">功能设置</h3>
-                            <button class="close-sidebar" id="closeSidebar" title="关闭">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                                </svg>
+                <div class="main-content">
+                    <div class="mode-selector">
+                        <button class="mode-btn active" data-mode="chat">
+                            <span class="mode-icon">💬</span>
+                            <span class="mode-label">问答模式</span>
+                            <span class="mode-desc">引导启发 · 互动问答</span>
+                        </button>
+                        <button class="mode-btn" data-mode="teaching">
+                            <span class="mode-icon">📚</span>
+                            <span class="mode-label">教学模式</span>
+                            <span class="mode-desc">知识讲解 · 课堂教学</span>
+                        </button>
+                        <button class="mode-btn" data-mode="lesson">
+                            <span class="mode-icon">📋</span>
+                            <span class="mode-label">备课模式</span>
+                            <span class="mode-desc">教案设计 · 资源准备</span>
+                        </button>
+                    </div>
+
+                    <div class="chat-container">
+                        <div class="chat-messages" id="messagesList">
+                            <div class="message assistant">
+                                <div class="message-avatar">
+                                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%23667eea'/%3E%3Ctext x='50' y='55' text-anchor='middle' fill='white' font-size='40'%3E👩‍🏫%3C/text%3E%3C/svg%3E" alt="小慧老师" />
+                                </div>
+                                <div class="message-content">
+                                    <div class="message-header">
+                                        <span class="message-sender">小慧老师</span>
+                                        <span class="message-time">10:15</span>
+                                    </div>
+                                    <div class="message-text">
+                                        同学们，看到这个句子，你们觉得它像什么呢？想一想，大胆说出来吧！
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="message highlight">
+                                <div class="highlight-content">
+                                    <div class="highlight-badge">当前聚焦问答</div>
+                                    <div class="highlight-text">像什么</div>
+                                    <div class="highlight-tag">学生问题识别</div>
+                                    <div class="highlight-pulse"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="message assistant">
+                                <div class="message-avatar">
+                                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%23667eea'/%3E%3Ctext x='50' y='55' text-anchor='middle' fill='white' font-size='40'%3E👩‍🏫%3C/text%3E%3C/svg%3E" alt="小慧老师" />
+                                </div>
+                                <div class="message-content">
+                                    <div class="message-header">
+                                        <span class="message-sender">小慧老师</span>
+                                        <span class="message-time">10:16</span>
+                                    </div>
+                                    <div class="message-text">
+                                        说得真好！你们想象力太丰富了！
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="message assistant">
+                                <div class="message-avatar">
+                                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%23667eea'/%3E%3Ctext x='50' y='55' text-anchor='middle' fill='white' font-size='40'%3E👩‍🏫%3C/text%3E%3C/svg%3E" alt="小慧老师" />
+                                </div>
+                                <div class="message-content">
+                                    <div class="message-header">
+                                        <span class="message-sender">小慧老师</span>
+                                        <span class="message-time">10:17</span>
+                                    </div>
+                                    <div class="message-text">
+                                        是呀，细细的春雨就像牛毛一样，看不见，摸不到，但它在默默地滋润着大地。
+                                        <br><br>
+                                        大家想想，生活中还有哪些东西也像牛毛一样细呢？
+                                    </div>
+                                    <div class="message-tag">
+                                        <span class="tag-icon">🔍</span>
+                                        <span class="tag-text">拓展思考</span>
+                                        <span class="tag-desc">引导学生联系生活经验，培养观察力和想象力。</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="message user">
+                                <div class="message-avatar">
+                                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%23764ba2'/%3E%3Ctext x='50' y='55' text-anchor='middle' fill='white' font-size='40'%3E👦%3C/text%3E%3C/svg%3E" alt="学生" />
+                                </div>
+                                <div class="message-content">
+                                    <div class="message-header">
+                                        <span class="message-time">10:18</span>
+                                    </div>
+                                    <div class="message-text">
+                                        我觉得像蜘蛛丝，也很细很细！
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="message assistant">
+                                <div class="message-avatar">
+                                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%23667eea'/%3E%3Ctext x='50' y='55' text-anchor='middle' fill='white' font-size='40'%3E👩‍🏫%3C/text%3E%3C/svg%3E" alt="小慧老师" />
+                                </div>
+                                <div class="message-content">
+                                    <div class="message-header">
+                                        <span class="message-sender">小慧老师</span>
+                                        <span class="message-time">10:19</span>
+                                    </div>
+                                    <div class="message-text">
+                                        非常棒！蜘蛛丝确实又细又长，非常有趣！你观察得很仔细，继续保持哦！👍
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="input-area">
+                            <button class="voice-btn" id="voiceBtn" title="语音输入">
+                                <span class="voice-icon">🎤</span>
+                                <span class="voice-text">语音输入</span>
+                            </button>
+                            <div class="text-input-wrapper">
+                                <input type="text" id="messageInput" placeholder="输入你的问题..." />
+                                <div class="input-hint">按 Enter 发送，Shift + Enter 换行</div>
+                            </div>
+                            <button class="send-btn" id="sendBtn" title="发送">
+                                <span class="send-icon">📤</span>
+                                <span class="send-text">发送</span>
                             </button>
                         </div>
-                        <div class="sidebar-content" id="sidebarContent"></div>
-                    </aside>
-                </main>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

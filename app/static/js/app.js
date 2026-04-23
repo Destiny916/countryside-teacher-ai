@@ -10,8 +10,6 @@ class TeacherAssistantApp {
     async init() {
         await this.createSession();
         this.bindEvents();
-        this.addWelcomeMessage();
-        this.initTextarea();
     }
 
     async createSession() {
@@ -29,7 +27,7 @@ class TeacherAssistantApp {
     }
 
     bindEvents() {
-        document.querySelectorAll('.nav-btn').forEach(btn => {
+        document.querySelectorAll('.mode-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const mode = e.currentTarget.dataset.mode;
                 this.switchMode(mode);
@@ -37,129 +35,65 @@ class TeacherAssistantApp {
         });
 
         document.getElementById('sendBtn').addEventListener('click', () => this.sendMessage());
-        document.getElementById('messageInput').addEventListener('keydown', (e) => this.handleKeydown(e));
+        document.getElementById('messageInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                this.sendMessage();
+            }
+        });
 
         document.getElementById('voiceBtn').addEventListener('click', () => this.startVoiceInput());
 
-        document.getElementById('closeSidebar').addEventListener('click', () => {
-            document.getElementById('sidebarPanel').classList.add('hidden');
+        document.querySelectorAll('.menu-item').forEach(item => {
+            item.addEventListener('click', () => {
+                document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+            });
         });
-
-        document.querySelector('.action-btn').addEventListener('click', () => this.clearChat());
-    }
-
-    initTextarea() {
-        const textarea = document.getElementById('messageInput');
-        textarea.addEventListener('input', () => {
-            textarea.style.height = 'auto';
-            textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
-        });
-    }
-
-    handleKeydown(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            this.sendMessage();
-        }
     }
 
     switchMode(mode) {
         this.currentMode = mode;
-        document.querySelectorAll('.nav-btn').forEach(btn => {
+        document.querySelectorAll('.mode-btn').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.mode === mode);
         });
-
-        this.updateSidebar(mode);
     }
 
-    updateSidebar(mode) {
-        const sidebar = document.getElementById('sidebarPanel');
-        const sidebarContent = document.getElementById('sidebarContent');
-        const sidebarTitle = document.getElementById('sidebarTitle');
-
-        switch (mode) {
-            case 'chat':
-                sidebar.classList.add('hidden');
-                break;
-            case 'teaching':
-                sidebar.classList.remove('hidden');
-                sidebarTitle.textContent = '教学模式';
-                sidebarContent.innerHTML = `
-                    <div class="form-group">
-                        <label>教学主题</label>
-                        <input type="text" id="teachingTopic" placeholder="例如：分数的认识">
-                    </div>
-                    <div class="form-group">
-                        <label>教学大纲</label>
-                        <textarea id="teachingOutline" placeholder="每行为一个知识点，例如：\n1. 分数的概念\n2. 分数的读写\n3. 分数的比较"></textarea>
-                    </div>
-                    <button class="submit-btn" onclick="app.startTeaching()">开始教学</button>
-                `;
-                break;
-            case 'lesson':
-                sidebar.classList.remove('hidden');
-                sidebarTitle.textContent = '备课模式';
-                sidebarContent.innerHTML = `
-                    <div class="form-group">
-                        <label>年级</label>
-                        <select id="lessonGrade">
-                            <option value="1">一年级</option>
-                            <option value="2">二年级</option>
-                            <option value="3">三年级</option>
-                            <option value="4">四年级</option>
-                            <option value="5">五年级</option>
-                            <option value="6">六年级</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>学科</label>
-                        <select id="lessonSubject">
-                            <option value="chinese">语文</option>
-                            <option value="math">数学</option>
-                            <option value="english">英语</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>课题</label>
-                        <input type="text" id="lessonTopic" placeholder="例如：分数的认识">
-                    </div>
-                    <div class="form-group">
-                        <label>课时</label>
-                        <input type="text" id="lessonDuration" placeholder="例如：40分钟" value="40分钟">
-                    </div>
-                    <button class="submit-btn" onclick="app.generateLessonPlan()">生成教案</button>
-                    <div id="lessonResult" class="result-container" style="display: none;"></div>
-                `;
-                break;
-        }
-    }
-
-    addWelcomeMessage() {
-        this.addMessage('assistant', '同学们好！我是小慧老师，有什么问题尽管问我哦～');
-    }
-
-    addMessage(role, content) {
+    addMessage(role, content, time = null) {
         const messagesList = document.getElementById('messagesList');
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${role}`;
 
         const avatar = document.createElement('div');
         avatar.className = 'message-avatar';
-        avatar.textContent = role === 'assistant' ? '👩‍🏫' : '👨‍🎓';
+        avatar.innerHTML = role === 'assistant' 
+            ? '<img src="data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\'%3E%3Ccircle cx=\'50\' cy=\'50\' r=\'45\' fill=\'%23667eea\'/%3E%3Ctext x=\'50\' y=\'55\' text-anchor=\'middle\' fill=\'white\' font-size=\'40\'%3E👩‍🏫%3C/text%3E%3C/svg%3E" alt="小慧老师" />' 
+            : '<img src="data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\'%3E%3Ccircle cx=\'50\' cy=\'50\' r=\'45\' fill=\'%23764ba2\'/%3E%3Ctext x=\'50\' y=\'55\' text-anchor=\'middle\' fill=\'white\' font-size=\'40\'%3E👦%3C/text%3E%3C/svg%3E" alt="学生" />';
 
         const contentWrapper = document.createElement('div');
+        contentWrapper.className = 'message-content';
 
-        const messageContent = document.createElement('div');
-        messageContent.className = 'message-content';
-        messageContent.textContent = content;
+        const messageHeader = document.createElement('div');
+        messageHeader.className = 'message-header';
 
-        const messageTime = document.createElement('div');
-        messageTime.className = 'message-time';
-        messageTime.textContent = this.formatTime(new Date());
+        if (role === 'assistant') {
+            const senderSpan = document.createElement('span');
+            senderSpan.className = 'message-sender';
+            senderSpan.textContent = '小慧老师';
+            messageHeader.appendChild(senderSpan);
+        }
 
-        contentWrapper.appendChild(messageContent);
-        contentWrapper.appendChild(messageTime);
+        const timeSpan = document.createElement('span');
+        timeSpan.className = 'message-time';
+        timeSpan.textContent = time || this.formatTime(new Date());
+        messageHeader.appendChild(timeSpan);
 
+        const messageText = document.createElement('div');
+        messageText.className = 'message-text';
+        messageText.textContent = content;
+
+        contentWrapper.appendChild(messageHeader);
+        contentWrapper.appendChild(messageText);
         messageDiv.appendChild(avatar);
         messageDiv.appendChild(contentWrapper);
 
@@ -174,20 +108,13 @@ class TeacherAssistantApp {
         });
     }
 
-    clearChat() {
-        const messagesList = document.getElementById('messagesList');
-        messagesList.innerHTML = '';
-        this.addWelcomeMessage();
-    }
-
     async sendMessage() {
-        const textarea = document.getElementById('messageInput');
-        const text = textarea.value.trim();
+        const input = document.getElementById('messageInput');
+        const text = input.value.trim();
         if (!text) return;
 
         this.addMessage('user', text);
-        textarea.value = '';
-        textarea.style.height = 'auto';
+        input.value = '';
 
         try {
             const response = await fetch(`${this.API_BASE}/chat/`, {
@@ -246,76 +173,6 @@ class TeacherAssistantApp {
             }
         } catch (error) {
             console.error('Failed to process voice:', error);
-        }
-    }
-
-    async startTeaching() {
-        const topic = document.getElementById('teachingTopic').value.trim();
-        const outlineText = document.getElementById('teachingOutline').value.trim();
-        const outline = outlineText.split('\n').filter(line => line.trim());
-
-        if (!topic || outline.length === 0) {
-            alert('请输入教学主题和大纲');
-            return;
-        }
-
-        try {
-            const response = await fetch(`${this.API_BASE}/chat/teaching`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    session_id: this.sessionId,
-                    topic: topic,
-                    outline: outline
-                })
-            });
-            const data = await response.json();
-
-            if (data.response) {
-                this.switchMode('chat');
-                this.addMessage('assistant', data.response.text);
-            }
-        } catch (error) {
-            console.error('Failed to start teaching:', error);
-        }
-    }
-
-    async generateLessonPlan() {
-        const grade = document.getElementById('lessonGrade').value;
-        const subject = document.getElementById('lessonSubject').value;
-        const topic = document.getElementById('lessonTopic').value.trim();
-        const duration = document.getElementById('lessonDuration').value.trim();
-
-        if (!topic) {
-            alert('请输入课题');
-            return;
-        }
-
-        try {
-            const response = await fetch(`${this.API_BASE}/lesson/`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    grade: parseInt(grade),
-                    subject: subject,
-                    topic: topic,
-                    duration: duration
-                })
-            });
-            const data = await response.json();
-
-            if (data.success) {
-                const resultDiv = document.getElementById('lessonResult');
-                resultDiv.style.display = 'block';
-                resultDiv.innerHTML = `
-                    <h4>📚 生成的教案</h4>
-                    <pre>${JSON.stringify(data.plan, null, 2)}</pre>
-                `;
-                this.switchMode('chat');
-                this.addMessage('assistant', `教案已生成！主题：${topic}`);
-            }
-        } catch (error) {
-            console.error('Failed to generate lesson plan:', error);
         }
     }
 }
