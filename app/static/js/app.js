@@ -43,13 +43,6 @@ class TeacherAssistantApp {
         });
 
         document.getElementById('voiceBtn').addEventListener('click', () => this.startVoiceInput());
-
-        document.querySelectorAll('.menu-item').forEach(item => {
-            item.addEventListener('click', () => {
-                document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
-                item.classList.add('active');
-            });
-        });
     }
 
     switchMode(mode) {
@@ -66,9 +59,39 @@ class TeacherAssistantApp {
 
         const avatar = document.createElement('div');
         avatar.className = 'message-avatar';
-        avatar.innerHTML = role === 'assistant' 
-            ? '<img src="data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\'%3E%3Ccircle cx=\'50\' cy=\'50\' r=\'45\' fill=\'%23667eea\'/%3E%3Ctext x=\'50\' y=\'55\' text-anchor=\'middle\' fill=\'white\' font-size=\'40\'%3E👩‍🏫%3C/text%3E%3C/svg%3E" alt="小慧老师" />' 
-            : '<img src="data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\'%3E%3Ccircle cx=\'50\' cy=\'50\' r=\'45\' fill=\'%23764ba2\'/%3E%3Ctext x=\'50\' y=\'55\' text-anchor=\'middle\' fill=\'white\' font-size=\'40\'%3E👦%3C/text%3E%3C/svg%3E" alt="学生" />';
+        
+        if (role === 'assistant') {
+            avatar.innerHTML = `
+                <div class="avatar-glow">
+                    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#4f46e5;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <circle cx="20" cy="20" r="18" fill="url(#grad1)"/>
+                        <path d="M15 15V25M25 15V25M10 20H30" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </div>
+            `;
+        } else {
+            avatar.innerHTML = `
+                <div class="avatar-glow user-avatar">
+                    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#7c3aed;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#ec4899;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <circle cx="20" cy="20" r="18" fill="url(#grad2)"/>
+                        <path d="M15 25C15 25 17 22 20 22C23 22 25 25 25 25" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                        <circle cx="20" cy="16" r="4" fill="white"/>
+                    </svg>
+                </div>
+            `;
+        }
 
         const contentWrapper = document.createElement('div');
         contentWrapper.className = 'message-content';
