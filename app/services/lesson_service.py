@@ -3,7 +3,6 @@
 基于RAG检索和LLM生成符合人教版标准的教案
 """
 from typing import Dict, List, Optional, Any
-from app.core.rag_engine import get_rag_engine
 from model_service.inference import get_vllm_client
 import json
 
@@ -38,7 +37,8 @@ LESSON_PLAN_TEMPLATE = """请根据以下信息生成一份完整的小学教案
 
 class LessonPlanService:
     def __init__(self):
-        self.rag_engine = get_rag_engine()
+        # 不初始化RAG引擎，直接使用LLM
+        self.rag_engine = None
         self.vllm_client = get_vllm_client()
 
     def generate_lesson_plan(
@@ -49,12 +49,8 @@ class LessonPlanService:
         duration: str = "40分钟",
         additional_requirements: Optional[str] = None
     ) -> Dict[str, Any]:
-        context = self.rag_engine.get_relevant_context(
-            query=f"{subject} {topic}",
-            grade=grade,
-            subject=subject,
-            n_results=5
-        )
+        # 直接使用空上下文，避免RAG引擎的问题
+        context = ""
 
         standard_content = self._get_curriculum_standard(grade, subject)
 

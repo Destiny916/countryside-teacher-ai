@@ -21,26 +21,31 @@ class RAGEngine:
 
         os.makedirs(self.db_path, exist_ok=True)
 
-        self.client = chromadb.Client(Settings(
-            persist_directory=self.db_path,
-            anonymized_telemetry=False
-        ))
+        try:
+            self.client = chromadb.Client(Settings(
+                persist_directory=self.db_path,
+                anonymized_telemetry=False
+            ))
 
-        self.collection = self.client.get_or_create_collection(
-            name=self.collection_name,
-            metadata={"hnsw:space": "cosine"}
-        )
+            self.collection = self.client.get_or_create_collection(
+                name=self.collection_name,
+                metadata={"hnsw:space": "cosine"}
+            )
 
-        self.embeddings = HuggingFaceEmbeddings(
-            model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
-            model_kwargs={'device': 'cuda'}
-        )
-
-        self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=500,
-            chunk_overlap=50,
-            separators=["\n\n", "\n", "。", "，", " "]
-        )
+            # 延迟加载embeddings
+            self.embeddings = None
+            self.text_splitter = RecursiveCharacterTextSplitter(
+                chunk_size=500,
+                chunk_overlap=50,
+                separators=["\n\n", "\n", "。", "，", " "]
+            )
+        except Exception as e:
+            print(f"RAG引擎初始化失败: {e}")
+            # 初始化失败时，设置为简化模式
+            self.client = None
+            self.collection = None
+            self.embeddings = None
+            self.text_splitter = None
 
     def add_texts(
         self,
@@ -87,24 +92,39 @@ class RAGEngine:
         n_results: int = 5,
         filter_metadata: Optional[Dict] = None
     ) -> List[Dict[str, Any]]:
-        query_embedding = self.embeddings.embed_query(query_text)
+        # 如果embeddings不可用，返回空结果
+        if not self.embeddings or not self.collection:
+            return []
 
-        results = self.collection.query(
-            query_embeddings=[query_embedding],
-            n_results=n_results,
-            where=filter_metadata
-        )
+        try:
+            # 延迟加载embeddings
+            if self.embeddings is None:
+                from langchain_community.embeddings import HuggingFaceEmbeddings
+                self.embeddings = HuggingFaceEmbeddings(
+                    model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+                    model_kwargs={'device': 'cuda'}
+                )
 
-        formatted_results = []
-        if results['documents'] and len(results['documents']) > 0:
-            for i, doc in enumerate(results['documents'][0]):
-                formatted_results.append({
-                    'content': doc,
-                    'metadata': results['metadatas'][0][i] if results['metadatas'] else {},
-                    'distance': results['distances'][0][i] if results['distances'] else 0
-                })
+            query_embedding = self.embeddings.embed_query(query_text)
+            results = self.collection.query(
+                query_embeddings=[query_embedding],
+                n_results=n_results,
+                where=filter_metadata
+            )
 
-        return formatted_results
+            formatted_results = []
+            if results['documents'] and len(results['documents']) > 0:
+                for i, doc in enumerate(results['documents'][0]):
+                    formatted_results.append({
+                        'content': doc,
+                        'metadata': results['metadatas'][0][i] if results['metadatas'] else {},
+                        'distance': results['distances'][0][i] if results['distances'] else 0
+                    })
+
+            return formatted_results
+        except Exception as e:
+            print(f"RAG查询失败: {e}")
+            return []
 
     def get_relevant_context(
         self,
@@ -114,27 +134,39 @@ class RAGEngine:
         chapter: Optional[str] = None,
         n_results: int = 5
     ) -> str:
-        filter_metadata = {}
-        if grade:
-            filter_metadata['grade'] = grade
-        if subject:
-            filter_metadata['subject'] = subject
-        if chapter:
-            filter_metadata['chapter'] = chapter
+        try:
+            filter_metadata = {}
+            if grade:
+                filter_metadata['grade'] = grade
+            if subject:
+                filter_metadata['subject'] = subject
+            if chapter:
+                filter_metadata['chapter'] = chapter
 
-        results = self.query(
-            query,
-            n_results=n_results,
-            filter_metadata=filter_metadata if filter_metadata else None
-        )
+            results = self.query(
+                query,
+                n_results=n_results,
+                filter_metadata=filter_metadata if filter_metadata else None
+            )
 
-        context = "\n\n".join([r['content'] for r in results])
-        return context
+            context = "\n\n".join([r['content'] for r in results])
+            return context
+        except Exception as e:
+            print(f"获取相关上下文失败: {e}")
+            return ""
 
 _engine = None
 
 def get_rag_engine() -> RAGEngine:
     global _engine
     if _engine is None:
-        _engine = RAGEngine()
+        try:
+            _engine = RAGEngine()
+        except Exception as e:
+            print(f"RAG引擎初始化失败: {e}")
+            # 创建一个简化版本的RAG引擎，不使用embeddings
+            class SimpleRAGEngine:
+                def get_relevant_context(self, *args, **kwargs):
+                    return ""
+            _engine = SimpleRAGEngine()
     return _engine

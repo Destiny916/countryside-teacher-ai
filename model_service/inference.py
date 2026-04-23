@@ -98,7 +98,7 @@ class SiliconFlowOpenAIClient:
     def __init__(self):
         self.api_key = os.getenv('SILICON_FLOW_API_KEY', 'sk-czzpwrzncqygoqmwdtojcmmsfgwzdnoqgrruarzdcrfjzzgn')
         self.base_url = os.getenv('SILICON_FLOW_BASE_URL', 'https://api.siliconflow.cn/v1')
-        self.model = os.getenv('SILICON_FLOW_MODEL', 'deepseekv3.2')
+        self.model = os.getenv('SILICON_FLOW_MODEL', 'deepseek-ai/DeepSeek-V3.2')
         self.client = httpx.Client(
             timeout=300.0,
             headers={
@@ -133,7 +133,41 @@ class SiliconFlowOpenAIClient:
         except Exception as e:
             print(f"SiliconFlow API error: {e}")
             print(f"Payload: {payload}")
-            raise
+            # 尝试使用generate端点作为备选
+            try:
+                # 构建提示语
+                prompt = ""
+                for msg in messages:
+                    if msg['role'] == 'system':
+                        prompt += f"[System]: {msg['content']}\n"
+                    elif msg['role'] == 'user':
+                        prompt += f"[User]: {msg['content']}\n"
+                    elif msg['role'] == 'assistant':
+                        prompt += f"[Assistant]: {msg['content']}\n"
+                prompt += "[Assistant]: "
+                
+                payload = {
+                    "model": self.model,
+                    "prompt": prompt,
+                    "max_tokens": max_tokens,
+                    "temperature": temperature,
+                    "top_p": 0.9
+                }
+                response = self.client.post(f"{self.base_url}/deepseek/generate", json=payload)
+                response.raise_for_status()
+                result = response.json()
+                # 转换为OpenAI兼容格式
+                return {
+                    'choices': [{
+                        'message': {
+                            'role': 'assistant',
+                            'content': result.get('text', '')
+                        }
+                    }]
+                }
+            except Exception as e2:
+                print(f"SiliconFlow generate API error: {e2}")
+                raise
 
     def close(self):
         self.client.close()

@@ -3,7 +3,6 @@ class TeacherAssistantApp {
         this.sessionId = null;
         this.currentMode = 'chat';
         this.API_BASE = '/api';
-        this.skills = [];
 
         this.init();
     }
@@ -12,7 +11,6 @@ class TeacherAssistantApp {
         await this.createSession();
         this.bindEvents();
         this.addWelcomeMessage();
-        await this.loadSkills();
     }
 
     async createSession() {
@@ -26,52 +24,6 @@ class TeacherAssistantApp {
             this.sessionId = data.session_id;
         } catch (error) {
             console.error('Failed to create session:', error);
-        }
-    }
-
-    async loadSkills() {
-        try {
-            const response = await fetch(`${this.API_BASE}/skills/`);
-            const data = await response.json();
-            if (data.success) {
-                this.skills = data.skills;
-                this.updateSkillsList();
-            }
-        } catch (error) {
-            console.error('Failed to load skills:', error);
-        }
-    }
-
-    updateSkillsList() {
-        const skillsList = document.getElementById('skillsList');
-        if (skillsList) {
-            skillsList.innerHTML = '';
-            this.skills.forEach(skill => {
-                const skillItem = document.createElement('div');
-                skillItem.className = 'skill-item';
-                skillItem.innerHTML = `
-                    <h4>${skill.name}</h4>
-                    <p>${skill.description}</p>
-                    <button class="skill-btn" onclick="app.useSkill('${skill.id}')">使用</button>
-                `;
-                skillsList.appendChild(skillItem);
-            });
-        }
-    }
-
-    async useSkill(skillId) {
-        try {
-            const response = await fetch(`${this.API_BASE}/skills/use`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({skill_id: skillId, session_id: this.sessionId})
-            });
-            const data = await response.json();
-            if (data.success) {
-                this.addMessage('assistant', data.result);
-            }
-        } catch (error) {
-            console.error('Failed to use skill:', error);
         }
     }
 
@@ -155,56 +107,7 @@ class TeacherAssistantApp {
                     <div id="lessonResult" class="result-container" style="display: none;"></div>
                 `;
                 break;
-            case 'project':
-                sidebar.style.display = 'block';
-                sidebarContent.innerHTML = `
-                    <h3>项目计划</h3>
-                    <div class="form-group">
-                        <label>学校名称</label>
-                        <input type="text" id="schoolName" placeholder="例如：希望小学">
-                    </div>
-                    <div class="form-group">
-                        <label>学生人数</label>
-                        <input type="number" id="studentCount" placeholder="例如：120">
-                    </div>
-                    <div class="form-group">
-                        <label>教师人数</label>
-                        <input type="number" id="teacherCount" placeholder="例如：8">
-                    </div>
-                    <div class="form-group">
-                        <label>年级设置</label>
-                        <input type="text" id="gradeSettings" placeholder="例如：小学1-6年级" value="小学1-6年级">
-                    </div>
-                    <div class="form-group">
-                        <label>网络状况</label>
-                        <input type="text" id="networkStatus" placeholder="例如：一般" value="一般">
-                    </div>
-                    <div class="form-group">
-                        <label>现有设备</label>
-                        <input type="text" id="existingEquipment" placeholder="例如：基本完备" value="基本完备">
-                    </div>
-                    <div class="form-group">
-                        <label>预算范围</label>
-                        <input type="text" id="budgetRange" placeholder="例如：10-20万" value="10-20万">
-                    </div>
-                    <button class="submit-btn" onclick="app.generateProjectPlan()">生成项目计划</button>
-                    <div id="projectResult" class="result-container" style="display: none;"></div>
-                `;
-                break;
-            case 'skills':
-                sidebar.style.display = 'block';
-                sidebarContent.innerHTML = `
-                    <h3>技能管理</h3>
-                    <button class="submit-btn" onclick="app.refreshSkills()">刷新技能</button>
-                    <div id="skillsList" class="skills-list"></div>
-                `;
-                this.updateSkillsList();
-                break;
         }
-    }
-
-    async refreshSkills() {
-        await this.loadSkills();
     }
 
     addWelcomeMessage() {
@@ -352,45 +255,7 @@ class TeacherAssistantApp {
         }
     }
 
-    async generateProjectPlan() {
-        const schoolName = document.getElementById('schoolName').value.trim();
-        const studentCount = document.getElementById('studentCount').value;
-        const teacherCount = document.getElementById('teacherCount').value;
-        const gradeSettings = document.getElementById('gradeSettings').value;
-        const networkStatus = document.getElementById('networkStatus').value;
-        const existingEquipment = document.getElementById('existingEquipment').value;
-        const budgetRange = document.getElementById('budgetRange').value;
 
-        if (!schoolName || !studentCount || !teacherCount) {
-            alert('请填写学校名称、学生人数和教师人数');
-            return;
-        }
-
-        try {
-            const response = await fetch(`${this.API_BASE}/project/`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    school_name: schoolName,
-                    student_count: parseInt(studentCount),
-                    teacher_count: parseInt(teacherCount),
-                    grade_settings: gradeSettings,
-                    network_status: networkStatus,
-                    existing_equipment: existingEquipment,
-                    budget_range: budgetRange
-                })
-            });
-            const data = await response.json();
-
-            if (data.success) {
-                const resultDiv = document.getElementById('projectResult');
-                resultDiv.style.display = 'block';
-                resultDiv.innerHTML = `<h4>生成的项目计划</h4><pre>${JSON.stringify(data.plan, null, 2)}</pre>`;
-            }
-        } catch (error) {
-            console.error('Failed to generate project plan:', error);
-        }
-    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
