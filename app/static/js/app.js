@@ -71,7 +71,10 @@ class TeacherAssistantApp {
                             </linearGradient>
                         </defs>
                         <circle cx="20" cy="20" r="18" fill="url(#grad1)"/>
-                        <path d="M15 15V25M25 15V25M10 20H30" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M14 16C14 14.8954 14.8954 14 16 14H24C25.1046 14 26 14.8954 26 16V18C26 19.1046 25.1046 20 24 20H16C14.8954 20 14 19.1046 14 18V16Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M16 22C16 20.8954 16.8954 20 18 20H22C23.1046 20 24 20.8954 24 22V28C24 29.1046 23.1046 30 22 30H18C16.8954 30 16 29.1046 16 28V22Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M12 18V28" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M28 18V28" stroke="white" stroke-width="2" stroke-linecap="round"/>
                     </svg>
                 </div>
             `;
