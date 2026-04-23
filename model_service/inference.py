@@ -110,10 +110,14 @@ class SiliconFlowOpenAIClient:
     def chat(
         self,
         messages: List[Dict[str, str]],
-        max_tokens: int = 16384,
+        max_tokens: int = 2048,
         temperature: float = 0.7,
         stream: bool = False
     ) -> Dict[str, Any]:
+        # 确保messages格式正确
+        if not messages:
+            messages = [{"role": "user", "content": "你好"}]
+        
         payload = {
             "model": self.model,
             "messages": messages,
@@ -122,9 +126,14 @@ class SiliconFlowOpenAIClient:
             "top_p": 0.9,
             "stream": stream
         }
-        response = self.client.post(f"{self.base_url}/chat/completions", json=payload)
-        response.raise_for_status()
-        return response.json()
+        try:
+            response = self.client.post(f"{self.base_url}/chat/completions", json=payload)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            print(f"SiliconFlow API error: {e}")
+            print(f"Payload: {payload}")
+            raise
 
     def close(self):
         self.client.close()
