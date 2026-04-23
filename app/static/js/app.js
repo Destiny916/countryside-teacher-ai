@@ -3,6 +3,7 @@ class TeacherAssistantApp {
         this.sessionId = null;
         this.currentMode = 'chat';
         this.API_BASE = '/api';
+        this.skills = [];
 
         this.init();
     }
@@ -11,6 +12,7 @@ class TeacherAssistantApp {
         await this.createSession();
         this.bindEvents();
         this.addWelcomeMessage();
+        await this.loadSkills();
     }
 
     async createSession() {
@@ -24,6 +26,52 @@ class TeacherAssistantApp {
             this.sessionId = data.session_id;
         } catch (error) {
             console.error('Failed to create session:', error);
+        }
+    }
+
+    async loadSkills() {
+        try {
+            const response = await fetch(`${this.API_BASE}/skills/`);
+            const data = await response.json();
+            if (data.success) {
+                this.skills = data.skills;
+                this.updateSkillsList();
+            }
+        } catch (error) {
+            console.error('Failed to load skills:', error);
+        }
+    }
+
+    updateSkillsList() {
+        const skillsList = document.getElementById('skillsList');
+        if (skillsList) {
+            skillsList.innerHTML = '';
+            this.skills.forEach(skill => {
+                const skillItem = document.createElement('div');
+                skillItem.className = 'skill-item';
+                skillItem.innerHTML = `
+                    <h4>${skill.name}</h4>
+                    <p>${skill.description}</p>
+                    <button class="skill-btn" onclick="app.useSkill('${skill.id}')">使用</button>
+                `;
+                skillsList.appendChild(skillItem);
+            });
+        }
+    }
+
+    async useSkill(skillId) {
+        try {
+            const response = await fetch(`${this.API_BASE}/skills/use`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({skill_id: skillId, session_id: this.sessionId})
+            });
+            const data = await response.json();
+            if (data.success) {
+                this.addMessage('assistant', data.result);
+            }
+        } catch (error) {
+            console.error('Failed to use skill:', error);
         }
     }
 
@@ -143,7 +191,20 @@ class TeacherAssistantApp {
                     <div id="projectResult" class="result-container" style="display: none;"></div>
                 `;
                 break;
+            case 'skills':
+                sidebar.style.display = 'block';
+                sidebarContent.innerHTML = `
+                    <h3>技能管理</h3>
+                    <button class="submit-btn" onclick="app.refreshSkills()">刷新技能</button>
+                    <div id="skillsList" class="skills-list"></div>
+                `;
+                this.updateSkillsList();
+                break;
         }
+    }
+
+    async refreshSkills() {
+        await this.loadSkills();
     }
 
     addWelcomeMessage() {
