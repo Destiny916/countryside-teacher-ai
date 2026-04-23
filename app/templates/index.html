@@ -5,34 +5,128 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>乡村老师助教系统 - 小慧老师</title>
     <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div id="app" class="container">
-        <header class="header">
-            <h1>🏠 乡村老师助教系统</h1>
-            <p class="subtitle">小慧老师随时为你服务！</p>
-        </header>
-
-        <main class="main-content">
-            <div class="mode-selector">
-                <button class="mode-btn active" data-mode="chat">💬 问答模式</button>
-                <button class="mode-btn" data-mode="teaching">📚 教学模式</button>
-                <button class="mode-btn" data-mode="lesson">📝 备课模式</button>
-            </div>
-
-            <div class="chat-container" id="chatContainer">
-                <div class="messages" id="messages"></div>
-                <div class="input-area">
-                    <button class="voice-btn" id="voiceBtn">🎤</button>
-                    <input type="text" id="messageInput" placeholder="输入你的问题...">
-                    <button class="send-btn" id="sendBtn">发送</button>
+    <div class="app-container">
+        <div class="background-decoration">
+            <div class="gradient-orb orb-1"></div>
+            <div class="gradient-orb orb-2"></div>
+            <div class="gradient-orb orb-3"></div>
+        </div>
+        
+        <div class="main-wrapper">
+            <header class="app-header">
+                <div class="header-content">
+                    <div class="logo-section">
+                        <div class="logo-icon">
+                            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M50 10L85 30V70L50 90L15 70V30L50 10Z" fill="url(#grad1)" stroke="#fff" stroke-width="2"/>
+                                <path d="M35 45H65M35 55H60M35 65H55" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+                                <defs>
+                                    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+                                        <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+                        </div>
+                        <div class="logo-text">
+                            <h1>乡村老师助教系统</h1>
+                            <p>小慧老师随时为你服务！</p>
+                        </div>
+                    </div>
+                    <div class="status-badge">
+                        <span class="status-dot"></span>
+                        <span>在线</span>
+                    </div>
                 </div>
-            </div>
-        </main>
+            </header>
 
-        <aside class="sidebar" id="sidebar" style="display: none;">
-            <div class="sidebar-content"></div>
-        </aside>
+            <div class="content-area">
+                <nav class="mode-navigation">
+                    <button class="nav-btn active" data-mode="chat">
+                        <span class="nav-icon">💬</span>
+                        <span class="nav-label">问答模式</span>
+                        <span class="nav-desc">引导启发 · 互动问答</span>
+                    </button>
+                    <button class="nav-btn" data-mode="teaching">
+                        <span class="nav-icon">📚</span>
+                        <span class="nav-label">教学模式</span>
+                        <span class="nav-desc">知识讲解 · 课堂教学</span>
+                    </button>
+                    <button class="nav-btn" data-mode="lesson">
+                        <span class="nav-icon">📝</span>
+                        <span class="nav-label">备课模式</span>
+                        <span class="nav-desc">教案设计 · 资源准备</span>
+                    </button>
+                </nav>
+
+                <main class="workspace">
+                    <div class="chat-panel" id="chatPanel">
+                        <div class="chat-header">
+                            <div class="teacher-info">
+                                <div class="teacher-avatar">
+                                    <div class="avatar-ring"></div>
+                                    <span>👩‍🏫</span>
+                                </div>
+                                <div class="teacher-details">
+                                    <h3>小慧老师</h3>
+                                    <p class="status-text">准备就绪</p>
+                                </div>
+                            </div>
+                            <div class="chat-actions">
+                                <button class="action-btn" title="清空对话">🗑️</button>
+                            </div>
+                        </div>
+
+                        <div class="messages-container" id="messagesContainer">
+                            <div class="messages-list" id="messagesList"></div>
+                        </div>
+
+                        <div class="input-container">
+                            <div class="input-wrapper">
+                                <button class="input-action-btn voice-btn" id="voiceBtn" title="语音输入">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                                        <line x1="12" y1="19" x2="12" y2="23"></line>
+                                        <line x1="8" y1="23" x2="16" y2="23"></line>
+                                    </svg>
+                                </button>
+                                <div class="text-input-wrapper">
+                                    <textarea id="messageInput" placeholder="输入你的问题... (Shift+Enter 换行)" rows="1"></textarea>
+                                </div>
+                                <button class="input-action-btn send-btn" id="sendBtn" title="发送">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="input-hints">
+                                <span>按 Enter 发送，Shift + Enter 换行</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <aside class="sidebar-panel" id="sidebarPanel">
+                        <div class="sidebar-header">
+                            <h3 id="sidebarTitle">功能设置</h3>
+                            <button class="close-sidebar" id="closeSidebar" title="关闭">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="sidebar-content" id="sidebarContent"></div>
+                    </aside>
+                </main>
+            </div>
+        </div>
     </div>
 
     <script src="/static/js/app.js"></script>

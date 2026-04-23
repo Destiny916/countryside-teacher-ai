@@ -11,14 +11,15 @@ class TeacherAssistantApp {
         await this.createSession();
         this.bindEvents();
         this.addWelcomeMessage();
+        this.initTextarea();
     }
 
     async createSession() {
         try {
             const response = await fetch(`${this.API_BASE}/chat/session`, {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({user_id: 'web_user'})
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: 'web_user' })
             });
             const data = await response.json();
             this.sessionId = data.session_id;
@@ -28,21 +29,43 @@ class TeacherAssistantApp {
     }
 
     bindEvents() {
-        document.querySelectorAll('.mode-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => this.switchMode(e.target.dataset.mode));
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const mode = e.currentTarget.dataset.mode;
+                this.switchMode(mode);
+            });
         });
 
         document.getElementById('sendBtn').addEventListener('click', () => this.sendMessage());
-        document.getElementById('messageInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.sendMessage();
-        });
+        document.getElementById('messageInput').addEventListener('keydown', (e) => this.handleKeydown(e));
 
         document.getElementById('voiceBtn').addEventListener('click', () => this.startVoiceInput());
+
+        document.getElementById('closeSidebar').addEventListener('click', () => {
+            document.getElementById('sidebarPanel').classList.add('hidden');
+        });
+
+        document.querySelector('.action-btn').addEventListener('click', () => this.clearChat());
+    }
+
+    initTextarea() {
+        const textarea = document.getElementById('messageInput');
+        textarea.addEventListener('input', () => {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
+        });
+    }
+
+    handleKeydown(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            this.sendMessage();
+        }
     }
 
     switchMode(mode) {
         this.currentMode = mode;
-        document.querySelectorAll('.mode-btn').forEach(btn => {
+        document.querySelectorAll('.nav-btn').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.mode === mode);
         });
 
@@ -50,17 +73,18 @@ class TeacherAssistantApp {
     }
 
     updateSidebar(mode) {
-        const sidebar = document.getElementById('sidebar');
-        const sidebarContent = document.querySelector('.sidebar-content');
+        const sidebar = document.getElementById('sidebarPanel');
+        const sidebarContent = document.getElementById('sidebarContent');
+        const sidebarTitle = document.getElementById('sidebarTitle');
 
         switch (mode) {
             case 'chat':
-                sidebar.style.display = 'none';
+                sidebar.classList.add('hidden');
                 break;
             case 'teaching':
-                sidebar.style.display = 'block';
+                sidebar.classList.remove('hidden');
+                sidebarTitle.textContent = '教学模式';
                 sidebarContent.innerHTML = `
-                    <h3>教学模式</h3>
                     <div class="form-group">
                         <label>教学主题</label>
                         <input type="text" id="teachingTopic" placeholder="例如：分数的认识">
@@ -73,9 +97,9 @@ class TeacherAssistantApp {
                 `;
                 break;
             case 'lesson':
-                sidebar.style.display = 'block';
+                sidebar.classList.remove('hidden');
+                sidebarTitle.textContent = '备课模式';
                 sidebarContent.innerHTML = `
-                    <h3>备课模式</h3>
                     <div class="form-group">
                         <label>年级</label>
                         <select id="lessonGrade">
@@ -115,26 +139,60 @@ class TeacherAssistantApp {
     }
 
     addMessage(role, content) {
-        const messagesDiv = document.getElementById('messages');
+        const messagesList = document.getElementById('messagesList');
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${role}`;
-        messageDiv.textContent = content;
-        messagesDiv.appendChild(messageDiv);
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+        const avatar = document.createElement('div');
+        avatar.className = 'message-avatar';
+        avatar.textContent = role === 'assistant' ? '👩‍🏫' : '👨‍🎓';
+
+        const contentWrapper = document.createElement('div');
+
+        const messageContent = document.createElement('div');
+        messageContent.className = 'message-content';
+        messageContent.textContent = content;
+
+        const messageTime = document.createElement('div');
+        messageTime.className = 'message-time';
+        messageTime.textContent = this.formatTime(new Date());
+
+        contentWrapper.appendChild(messageContent);
+        contentWrapper.appendChild(messageTime);
+
+        messageDiv.appendChild(avatar);
+        messageDiv.appendChild(contentWrapper);
+
+        messagesList.appendChild(messageDiv);
+        messagesList.scrollTop = messagesList.scrollHeight;
+    }
+
+    formatTime(date) {
+        return date.toLocaleTimeString('zh-CN', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    clearChat() {
+        const messagesList = document.getElementById('messagesList');
+        messagesList.innerHTML = '';
+        this.addWelcomeMessage();
     }
 
     async sendMessage() {
-        const input = document.getElementById('messageInput');
-        const text = input.value.trim();
+        const textarea = document.getElementById('messageInput');
+        const text = textarea.value.trim();
         if (!text) return;
 
         this.addMessage('user', text);
-        input.value = '';
+        textarea.value = '';
+        textarea.style.height = 'auto';
 
         try {
             const response = await fetch(`${this.API_BASE}/chat/`, {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     session_id: this.sessionId,
                     text: text
@@ -204,7 +262,7 @@ class TeacherAssistantApp {
         try {
             const response = await fetch(`${this.API_BASE}/chat/teaching`, {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     session_id: this.sessionId,
                     topic: topic,
@@ -214,6 +272,7 @@ class TeacherAssistantApp {
             const data = await response.json();
 
             if (data.response) {
+                this.switchMode('chat');
                 this.addMessage('assistant', data.response.text);
             }
         } catch (error) {
@@ -235,7 +294,7 @@ class TeacherAssistantApp {
         try {
             const response = await fetch(`${this.API_BASE}/lesson/`, {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     grade: parseInt(grade),
                     subject: subject,
@@ -248,14 +307,17 @@ class TeacherAssistantApp {
             if (data.success) {
                 const resultDiv = document.getElementById('lessonResult');
                 resultDiv.style.display = 'block';
-                resultDiv.innerHTML = `<h4>生成的教案</h4><pre>${JSON.stringify(data.plan, null, 2)}</pre>`;
+                resultDiv.innerHTML = `
+                    <h4>📚 生成的教案</h4>
+                    <pre>${JSON.stringify(data.plan, null, 2)}</pre>
+                `;
+                this.switchMode('chat');
+                this.addMessage('assistant', `教案已生成！主题：${topic}`);
             }
         } catch (error) {
             console.error('Failed to generate lesson plan:', error);
         }
     }
-
-
 }
 
 document.addEventListener('DOMContentLoaded', () => {
