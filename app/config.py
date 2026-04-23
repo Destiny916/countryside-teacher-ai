@@ -27,3 +27,11 @@ class Config:
     MAX_CONCURRENT_USERS = int(os.getenv("MAX_CONCURRENT_USERS", "30"))
     SESSION_TIMEOUT = int(os.getenv("SESSION_TIMEOUT", "3600"))
     MAX_CONTENT_LENGTH = int(os.getenv("MAX_CONTENT_LENGTH", str(16 * 1024 * 1024)))
+
+    # 并发优化配置
+    MAX_WORKERS = int(os.getenv("MAX_WORKERS", "30"))
+    REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "120"))
+    ENABLE_STREAMING = os.getenv("ENABLE_STREAMING", "True").lower() == "true"
+
+    # Redis缓存（可选，用于多实例部署）
+    REDIS_URL = os.getenv("REDIS_URL", None)
