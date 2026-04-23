@@ -68,19 +68,7 @@ class TeacherAssistantApp {
         if (role === 'assistant') {
             avatar.innerHTML = `
                 <div class="avatar-glow">
-                    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <defs>
-                            <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" style="stop-color:#4f46e5;stop-opacity:1" />
-                                <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
-                            </linearGradient>
-                        </defs>
-                        <circle cx="20" cy="20" r="18" fill="url(#grad1)"/>
-                        <path d="M14 16C14 14.8954 14.8954 14 16 14H24C25.1046 14 26 14.8954 26 16V18C26 19.1046 25.1046 20 24 20H16C14.8954 20 14 19.1046 14 18V16Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M16 22C16 20.8954 16.8954 20 18 20H22C23.1046 20 24 20.8954 24 22V28C24 29.1046 23.1046 30 22 30H18C16.8954 30 16 29.1046 16 28V22Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M12 18V28" stroke="white" stroke-width="2" stroke-linecap="round"/>
-                        <path d="M28 18V28" stroke="white" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
+                    <img src="/static/images/teacher-avatar.png" alt="小慧老师" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;" />
                 </div>
             `;
         } else {
