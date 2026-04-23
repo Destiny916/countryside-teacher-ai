@@ -16,3 +16,4 @@ bitsandbytes==0.41.0
 httpx==0.25.0
 python-multipart==0.0.6
 pydantic==1.10.13
+python-dotenv==1.0.0
