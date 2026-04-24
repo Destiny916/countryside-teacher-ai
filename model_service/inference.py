@@ -52,11 +52,140 @@ class VLLMClient:
         self.client.close()
 
 
+class NvidiaOpenAIClient:
+    def __init__(self):
+        self.api_key = os.getenv('NVIDIA_API_KEY', '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')
+        self.base_url = os.getenv('NVIDIA_BASE_URL', 'https://integrate.api.nvidia.com/v1')
+        self.model = os.getenv('NVIDIA_MODEL', 'z-ai/glm-5.1')
+        self.client = httpx.Client(
+            timeout=300.0,
+            headers={
+                'Authorization': f'Bearer {self.api_key}',
+                'Content-Type': 'application/json'
+            }
+        )
+
+    def chat(
+        self,
+        messages: List[Dict[str, str]],
+        max_tokens: int = 16384,
+        temperature: float = 0.7,
+        stream: bool = False
+    ) -> Dict[str, Any]:
+        payload = {
+            "model": self.model,
+            "messages": messages,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "top_p": 1.0,
+            "stream": stream,
+            "extra_body": {
+                "chat_template_kwargs": {
+                    "enable_thinking": True,
+                    "clear_thinking": False
+                }
+            }
+        }
+        response = self.client.post(f"{self.base_url}/chat/completions", json=payload)
+        response.raise_for_status()
+        return response.json()
+
+    def close(self):
+        self.client.close()
+
+
+class SiliconFlowOpenAIClient:
+    def __init__(self):
+        self.api_key = os.getenv('SILICON_FLOW_API_KEY', 'sk-czzpwrzncqygoqmwdtojcmmsfgwzdnoqgrruarzdcrfjzzgn')
+        self.base_url = os.getenv('SILICON_FLOW_BASE_URL', 'https://api.siliconflow.cn/v1')
+        self.model = os.getenv('SILICON_FLOW_MODEL', 'deepseek-ai/DeepSeek-V3.2')
+        self.client = httpx.Client(
+            timeout=300.0,
+            headers={
+                'Authorization': f'Bearer {self.api_key}',
+                'Content-Type': 'application/json'
+            }
+        )
+
+    def chat(
+        self,
+        messages: List[Dict[str, str]],
+        max_tokens: int = 2048,
+        temperature: float = 0.7,
+        stream: bool = False
+    ) -> Dict[str, Any]:
+        # 确保messages格式正确
+        if not messages:
+            messages = [{"role": "user", "content": "你好"}]
+        
+        payload = {
+            "model": self.model,
+            "messages": messages,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "top_p": 0.9,
+            "stream": stream
+        }
+        try:
+            response = self.client.post(f"{self.base_url}/chat/completions", json=payload)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            print(f"SiliconFlow API error: {e}")
+            print(f"Payload: {payload}")
+            # 尝试使用generate端点作为备选
+            try:
+                # 构建提示语
+                prompt = ""
+                for msg in messages:
+                    if msg['role'] == 'system':
+                        prompt += f"[System]: {msg['content']}\n"
+                    elif msg['role'] == 'user':
+                        prompt += f"[User]: {msg['content']}\n"
+                    elif msg['role'] == 'assistant':
+                        prompt += f"[Assistant]: {msg['content']}\n"
+                prompt += "[Assistant]: "
+                
+                payload = {
+                    "model": self.model,
+                    "prompt": prompt,
+                    "max_tokens": max_tokens,
+                    "temperature": temperature,
+                    "top_p": 0.9
+                }
+                response = self.client.post(f"{self.base_url}/deepseek/generate", json=payload)
+                response.raise_for_status()
+                result = response.json()
+                # 转换为OpenAI兼容格式
+                return {
+                    'choices': [{
+                        'message': {
+                            'role': 'assistant',
+                            'content': result.get('text', '')
+                        }
+                    }]
+                }
+            except Exception as e2:
+                print(f"SiliconFlow generate API error: {e2}")
+                raise
+
+    def close(self):
+        self.client.close()
+
+
 _client = None
 
 
 def get_vllm_client() -> VLLMClient:
     global _client
     if _client is None:
-        _client = VLLMClient()
+        # 检查使用哪种API服务
+        api_type = os.getenv('API_TYPE', 'local').lower()
+        
+        if api_type == 'nvidia':
+            _client = NvidiaOpenAIClient()
+        elif api_type == 'silicon_flow':
+            _client = SiliconFlowOpenAIClient()
+        else:
+            _client = VLLMClient()
     return _client
